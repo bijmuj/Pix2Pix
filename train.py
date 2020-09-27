@@ -17,10 +17,10 @@ def arg_parser():
     parser.add_argument('-i', dest='img_path', type=str, default='./data/maps/', help='path to dataset')
     parser.add_argument('-o', dest='out_path', type=str, default='./data/maps/out/', help='path to output directory')
     parser.add_argument('-c', dest='ckpt_path', type=str, default='./ckpt/', help='path to checkpoints')
-    parser.add_argument('-e', dest='epochs', type=int, default=150, help='epochs')
+    parser.add_argument('-e', dest='epochs', type=int, default=200, help='epochs')
     parser.add_argument('-l', dest='learning_rate', type=float, default=0.0002, help='learning rate')
     parser.add_argument('-b', dest='batch', type=int, default=1, help='batch size')
-    parser.add_argument('--cont', dest='continue_training', action='store_true')
+    parser.add_argument('--cont', dest='continue_training', default=False, action='store_true')
     args = parser.parse_args()
     return args
 
@@ -86,13 +86,17 @@ def train(args):
         print("Gen loss=", gen_loss)
         print("Disc loss=", disc_loss)
 
-    for x, y in test_ds.take(1):
+    # Storing three different outputs after final epoch
+    for x, y in test_ds.take(3):
         generate_and_save_imgs(gen, args.epochs + off, x, y, args.out_path)
+        off += 1
 
 if __name__=="__main__":
     tf.keras.backend.clear_session()
+    # BatchNormalization tends to return NaNs on occasion. The following line is included to help debug that.
     tf.debugging.enable_check_numerics()
     gpus = tf.config.experimental.list_physical_devices('GPU')
+    # Restricting tf from allocating all VRAM at the start to prevent OOM errors.
     if gpus:
         try:
             tf.config.experimental.set_virtual_device_configuration(gpus[0],
